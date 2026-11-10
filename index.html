@@ -17,6 +17,20 @@
 <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
+<div id="v-login">
+  <div class="login-card">
+    <img src="./icons/icon-192.png" alt="Menú de la Semana">
+    <h2>Menú de la Semana</h2>
+    <p>Ingresa con tu cuenta para ver y sincronizar el menú, la despensa y la lista de compras.</p>
+    <label>Correo</label>
+    <input id="login-email" type="email" autocomplete="username" placeholder="correo@ejemplo.com">
+    <label>Contraseña</label>
+    <input id="login-pass" type="password" autocomplete="current-password" placeholder="Tu contraseña">
+    <p class="login-error" id="login-error" style="display:none"></p>
+    <button class="btn" id="btn-login">Ingresar</button>
+    <button class="login-link" id="login-olvide">Olvidé mi contraseña</button>
+  </div>
+</div>
 <header>
   <h1>Menú de la Semana<span class="dot">.</span></h1>
   <div class="sub">Almuerzos · despensa · compras</div>

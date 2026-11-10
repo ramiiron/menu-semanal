@@ -1,4 +1,4 @@
-const CACHE = 'menu-pwa-v1';
+const CACHE = 'menu-pwa-v2';
 const CDN_CACHE = 'menu-pwa-cdn';
 const FILES = ['./', './index.html', './styles.css', './app.js', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png'];

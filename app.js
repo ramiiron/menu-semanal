@@ -4,7 +4,7 @@
    'menu_planes' y sin config compartida con otras apps. */
 
 const LS_KEY = 'menu-semana-v1';
-const APP_VERSION = '1.0';
+const APP_VERSION = '1.1';
 
 function ing(n, q, f) { return { n, q: q || '', f: !!f }; }
 const SEED_RECIPES = [
@@ -200,20 +200,67 @@ function subscribePlan(wk) {
   });
 }
 
-async function initCloud() {
+// ---------- Acceso con correo y contraseña (compuerta) ----------
+// Las reglas de Firestore (publicadas 2026-11-09) exigen sesión con correo
+// para todo excepto parking_registros: la sesión anónima recibe 403.
+// Sin una sesión de correo válida la app queda en la pantalla de ingreso.
+let authUser = null, cloudStarted = false;
+
+function loginMsg(txt, ok) {
+  const e = document.getElementById('login-error');
+  if (!e) return;
+  e.textContent = txt;
+  e.style.display = 'block';
+  e.classList.toggle('login-ok', !!ok);
+}
+
+function initAuth(esperado) {
   try {
-    if (typeof firebase === 'undefined') return;
-    if (firebase.apps && firebase.apps.length) { db = firebase.firestore(); }
-    else {
-      firebase.initializeApp(FIREBASE_CONFIG);
-      await firebase.auth().signInAnonymously();
-      db = firebase.firestore();
-      try { await db.enablePersistence({ synchronizeTabs: true }); } catch (e) {}
+    if (typeof firebase === 'undefined') {
+      esperado = esperado || 0;
+      if (esperado < 5000) { setTimeout(() => initAuth(esperado + 500), 500); return; }
+      loginMsg('Sin conexión para verificar tu sesión. Revisa internet y vuelve a abrir la app.');
+      return;
     }
+    if (!(firebase.apps && firebase.apps.length)) firebase.initializeApp(FIREBASE_CONFIG);
+    firebase.auth().onAuthStateChanged(user => {
+      if (!user || user.isAnonymous) {
+        if (user) firebase.auth().signOut().catch(() => {});
+        authUser = null;
+        document.body.classList.remove('unlocked');
+        return;
+      }
+      authUser = user;
+      document.body.classList.add('unlocked');
+      startCloud();
+      if (currentView === 'set') renderSettings();
+    });
+  } catch (e) {
+    cloudErr = (e && e.message) ? String(e.message).slice(0, 140) : 'error desconocido';
+  }
+}
+
+function intentarLogin() {
+  const email = (document.getElementById('login-email').value || '').trim();
+  const pass = document.getElementById('login-pass').value;
+  if (!email || !pass) { loginMsg('Escribe tu correo y tu contraseña.'); return; }
+  firebase.auth().signInWithEmailAndPassword(email, pass).catch(err => {
+    if (err && err.code === 'auth/too-many-requests') loginMsg('Demasiados intentos seguidos. Espera unos minutos e inténtalo de nuevo.');
+    else loginMsg('No pudimos ingresar: revisa el correo y la contraseña.');
+  });
+}
+
+async function startCloud() {
+  if (cloudStarted) return;
+  cloudStarted = true;
+  try {
+    db = firebase.firestore();
+    try { await db.enablePersistence({ synchronizeTabs: true }); } catch (e) {}
     cloudOn = true;
     await migrateLocalToCloud();
     subscribePlan(viewMonday);
     if (currentView === 'set') renderSettings();
+    if (currentView === 'sem') renderSemana();
     db.collection('menu_recetas').onSnapshot(snap => {
       if (!snap.empty || localStorage.getItem('menu-seeded') === '1') {
         const arr = [];
@@ -238,6 +285,7 @@ async function initCloud() {
     if (currentView === 'set') renderSettings();
   }
 }
+
 async function migrateLocalToCloud() {
   try {
     if (localStorage.getItem('menu-migrated') === '1') return;
@@ -528,11 +576,19 @@ function renderSettings() {
       : '📱 <b>Modo local.</b> Los datos viven solo en este teléfono.') +
     ((!cloudOn && cloudErr) ? '<br><span style="color:var(--red)">No se pudo conectar: ' + esc(cloudErr) + '</span>' : '') +
     '</div></div>' +
+    '<div class="card"><h2>Sesión</h2>' +
+    '<div class="hint" style="margin-top:0">' + (authUser ? 'Ingresaste como <b>' + esc(authUser.email || '') + '</b>.' : 'Sin sesión de correo: la app parte en modo local.') + '</div>' +
+    '<button class="btn ghost" id="sSignOut">Cerrar sesión</button></div>' +
     '<div class="card"><h2>Respaldo</h2>' +
     '<button class="btn ghost" id="sExport">Exportar datos (JSON)</button>' +
     '<button class="btn danger" id="sWipe" style="margin-top:10px">Borrar todo (recetas, despensa y planes)</button>' +
     '<div class="hint">Exporta un respaldo de vez en cuando.</div></div>' +
     '<div class="ver">Menú de la Semana · v' + APP_VERSION + '</div>';
+  const so = document.getElementById('sSignOut');
+  if (so) so.onclick = () => {
+    try { firebase.auth().signOut().then(() => location.reload()).catch(() => location.reload()); }
+    catch (e) { location.reload(); }
+  };
   document.getElementById('sExport').onclick = () => {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
@@ -589,7 +645,16 @@ if ('serviceWorker' in navigator) {
 }
 
 showView('sem');
-initCloud();
+initAuth();
+document.getElementById('btn-login').addEventListener('click', intentarLogin);
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') intentarLogin(); });
+document.getElementById('login-olvide').addEventListener('click', () => {
+  const email = (document.getElementById('login-email').value || '').trim();
+  if (!email) { loginMsg('Escribe primero tu correo y después toca «Olvidé mi contraseña».'); return; }
+  firebase.auth().sendPasswordResetEmail(email).then(() => {
+    loginMsg('Te enviamos un correo para crear una contraseña nueva. Revisa la bandeja de ' + email + '.', true);
+  }).catch(() => { loginMsg('No pudimos enviar el correo. Revisa que la dirección esté bien escrita.'); });
+});
 checkForUpdate();
 if (!window.__updWatch) window.__updWatch = setInterval(checkForUpdate, 60000);
 

@@ -287,3 +287,17 @@ textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(52,211,153,.
 #picker .sheet{background:var(--card);border:1px solid var(--line);border-radius:24px 24px 0 0;width:100%;max-width:520px;max-height:82vh;overflow:auto;padding:20px;}
 #picker .opt{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:14px 6px;border:none;border-bottom:1px solid var(--line);background:none;color:var(--ink);font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;}
 #picker .opt:last-child{border-bottom:none;}
+
+/* ---------- Acceso (login con correo) ---------- */
+body:not(.unlocked) header, body:not(.unlocked) main, body:not(.unlocked) nav{visibility:hidden}
+#v-login{position:fixed;inset:0;z-index:3000;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}
+body.unlocked #v-login{display:none}
+.login-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px 22px;width:100%;max-width:360px}
+.login-card img{width:64px;height:64px;border-radius:16px;display:block;margin:0 auto 14px}
+.login-card h2{margin:0 0 6px;text-align:center;font-family:"Space Grotesk","Inter",sans-serif;font-size:21px;font-weight:700;letter-spacing:-.4px}
+.login-card p{margin:0;text-align:center;color:var(--muted);font-size:14px;line-height:1.45}
+.login-card label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:14px 0 6px;text-align:left}
+.login-card .btn{width:100%;margin-top:18px}
+.login-error{margin:14px 0 0;font-size:13.5px;line-height:1.4;color:var(--red);background:var(--red-soft);border-radius:10px;padding:10px 12px}
+.login-error.login-ok{color:var(--accent-bright);background:var(--accent-soft)}
+.login-link{display:block;margin:12px auto 0;background:none;border:none;color:var(--accent-bright);font:inherit;font-size:14px;font-weight:600;cursor:pointer;padding:6px}
