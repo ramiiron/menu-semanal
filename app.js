@@ -4,7 +4,7 @@
    'menu_planes' y sin config compartida con otras apps. */
 
 const LS_KEY = 'menu-semana-v1';
-const APP_VERSION = '1.1';
+const APP_VERSION = '1.2';
 
 function ing(n, q, f) { return { n, q: q || '', f: !!f }; }
 const SEED_RECIPES = [
@@ -22,6 +22,22 @@ function seedPantry() {
     if (!seen.has(k)) seen.set(k, { id: 'p-' + k.replace(/[^a-z0-9]+/g, '-'), name: i.n, have: false });
   }));
   return [...seen.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+
+const RECIPE_IMGS = {
+  'r-pollo-arvejado': './images/pollo-arvejado.jpg',
+  'r-lentejas': './images/lentejas.jpg',
+  'r-tallarines': './images/tallarines.jpg',
+  'r-arroz-pollo': './images/arroz-pollo.jpg',
+  'r-cazuela': './images/cazuela.jpg',
+  'r-pescado': './images/pescado.jpg'
+};
+function recipeImg(r) { return (r && r.img) || RECIPE_IMGS[r && r.id] || ''; }
+function imgOrPh(r, cls) {
+  const src = recipeImg(r);
+  if (src) return '<img class="' + (cls || '') + '" src="' + src + '" alt="">';
+  return '<div class="rph">' + esc((r.name || '?').charAt(0)) + '</div>';
 }
 
 // ---------- Nube (Firebase) — mismo proyecto, colecciones propias ----------
@@ -305,7 +321,8 @@ async function migrateLocalToCloud() {
 function renderSemana() {
   const days = weekDays(viewMonday);
   const isCurrent = viewMonday === mondayOf(todayISO());
-  let html = '<div class="monthnav"><button id="wPrev" aria-label="Semana anterior">‹</button>' +
+  let html = '<div class="hero"><img src="./images/splash.jpg" alt=""><div class="hero-txt"><div class="ht">¿Qué comemos esta semana?</div><div class="hs">Elige los almuerzos y la lista de compras se arma sola</div></div></div>' +
+    '<div class="monthnav"><button id="wPrev" aria-label="Semana anterior">‹</button>' +
     '<div class="mname" style="text-transform:none;font-size:15px">Semana del ' + esc(weekLabel(viewMonday)) + '</div>' +
     '<button id="wNext" aria-label="Semana siguiente">›</button></div>';
 
@@ -366,7 +383,7 @@ function openPicker(iso) {
   const recs = state.recipes.slice().sort((a, b) => a.name.localeCompare(b.name));
   let html = '<div class="sheet"><h2 style="margin:0 0 6px;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:1.6px">Almuerzo del ' + esc(dayTitle(iso)) + '</h2>';
   recs.forEach(r => {
-    html += '<button class="opt" data-rid="' + r.id + '">' + esc(r.name) + '</button>';
+    html += '<button class="opt" data-rid="' + r.id + '">' + imgOrPh(r) + '<span>' + esc(r.name) + '</span></button>';
   });
   html += '<button class="opt" data-special="Libre">Libre</button>' +
     '<button class="opt" data-special="Sobras">Sobras</button>' +
@@ -449,12 +466,14 @@ function renderRecetas() {
     return;
   }
   const recs = state.recipes.slice().sort((a, b) => a.name.localeCompare(b.name));
-  let html = '<div class="card"><h2>' + recs.length + ' recetas</h2>';
-  if (!recs.length) html += '<div class="empty">Sin recetas todavía.</div>';
+  let html = '';
+  if (!recs.length) html += '<div class="card"><div class="empty">Sin recetas todavía.</div></div>';
+  html += '<div class="recgrid">';
   recs.forEach(r => {
     const defr = r.ings.filter(i => i.f).map(i => i.n);
-    html += '<div class="dayrow" data-rec="' + r.id + '"><div class="ddish"><div class="dtitle">' + esc(r.name) + '</div>' +
-      '<div class="dmeta">' + r.ings.length + ' ingredientes' + (defr.length ? ' · descongelar: ' + esc(defr.join(', ')) : '') + '</div></div><div class="dchev">›</div></div>';
+    html += '<div class="recard" data-rec="' + r.id + '">' + imgOrPh(r) +
+      '<div class="rbody"><div class="rname">' + esc(r.name) + '</div>' +
+      '<div class="rmeta">' + r.ings.length + ' ingredientes' + (defr.length ? '<br>❄️ ' + esc(defr.join(', ')) : '') + '</div></div></div>';
   });
   html += '</div><button class="btn" id="rNew" style="margin:0 0 14px">+ Nueva receta</button>';
   el.innerHTML = html;
@@ -646,6 +665,20 @@ if ('serviceWorker' in navigator) {
 
 showView('sem');
 initAuth();
+// Splash con foto: se muestra al abrir y se desvanece cuando la app cargó.
+(function () {
+  let hidden = false;
+  const hide = () => {
+    if (hidden) return;
+    hidden = true;
+    const sp = document.getElementById('splash');
+    if (!sp) return;
+    sp.classList.add('hide');
+    setTimeout(() => { if (sp.parentNode) sp.parentNode.removeChild(sp); }, 700);
+  };
+  window.addEventListener('load', () => setTimeout(hide, 900));
+  setTimeout(hide, 3200); // respaldo por si 'load' ya pasó
+})();
 document.getElementById('btn-login').addEventListener('click', intentarLogin);
 document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') intentarLogin(); });
 document.getElementById('login-olvide').addEventListener('click', () => {

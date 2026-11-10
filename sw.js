@@ -1,7 +1,9 @@
-const CACHE = 'menu-pwa-v2';
+const CACHE = 'menu-pwa-v3';
 const CDN_CACHE = 'menu-pwa-cdn';
 const FILES = ['./', './index.html', './styles.css', './app.js', './manifest.webmanifest',
-  './icons/icon-192.png', './icons/icon-512.png'];
+  './icons/icon-192.png', './icons/icon-512.png',
+  './images/splash.jpg', './images/pollo-arvejado.jpg', './images/lentejas.jpg',
+  './images/tallarines.jpg', './images/arroz-pollo.jpg', './images/cazuela.jpg', './images/pescado.jpg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
